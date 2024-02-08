@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController("/traveladventures")
@@ -21,8 +22,8 @@ public class TravelAdventuresController {
         return adventureRepository.findAll();
     }
 
-    @GetMapping("/traveladventures/bycountry/{country}")
-    public Iterable<Adventure> getAdventuresByCountry(@PathVariable String country) {
+    @GetMapping("/bycountry/{country}")
+    public List<Adventure> getAdventuresByCountry(@PathVariable("country") String country) {
         return adventureRepository.findByCountry(country);
     }
 
@@ -31,12 +32,12 @@ public class TravelAdventuresController {
     //Responds to GET requests like /traveladventures/bystate?state=Lisboa
     //Accepts a state parameter as a query parameter (it would capture Lisboa here)
     //Returns a list of adventures matching the requested state
-    @GetMapping("/traveladventures/bystate?state={state}")
-    public Iterable<Adventure> getAdventuresByState(@RequestParam String state) {
+    @GetMapping("/bystate?state={state}")
+    public List<Adventure> getAdventuresByState(@RequestParam(name="state") String state) {
         return adventureRepository.findByState(state);
     }
 
-    @PostMapping("/traveladventures")
+    @PostMapping()
     public Adventure addAdventure(@RequestBody Adventure adventure) {
         return adventureRepository.save(adventure);
     }
@@ -50,18 +51,15 @@ public class TravelAdventuresController {
 //    if does not exist, throw an exception and modify the HTTP status code to NOT_FOUND
     //if id exists, toggle the blogCompleted property to either true or false, depending on the value sent by the client and
     //return the updated adventure object
-    @PutMapping("/traveladventures/{id}")
-    public Optional<Adventure> updateAdventureOptional(@PathVariable int id, @RequestBody Adventure adventure) {
-        Optional<Adventure> adventureOptional = Optional.ofNullable(adventureRepository.findById(id));
-        if (!adventureOptional.isPresent()) {
+    @PutMapping("/{id}")
+    public Adventure updateAdventure(@PathVariable("id") int id, @RequestBody Adventure adventure)  {
+        Optional<Adventure> optionalAdventure = adventureRepository.findById(id);//todo:fix this
+        if (!optionalAdventure.isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Adventure not found");
         }
-
-        //toggle the blogCompleted property to either true or false, depending on the value sent by the client
-        adventure.setBlogCompleted(!adventure.isBlogCompleted());
-        //return the updated adventure object
-        adventure = adventureOptional.get();
-        return Optional.ofNullable(adventureRepository.save(adventure));
+        Adventure existingAdventure = optionalAdventure.get();
+        existingAdventure.setBlogCompleted(adventure.isBlogCompleted());
+        return adventureRepository.save(existingAdventure);
     }
 
     //Create a method that:
@@ -69,9 +67,13 @@ public class TravelAdventuresController {
     //Responds to DELETE requests like /traveladventures/10
     //Accepts a path variable id (in place of 10 here)
     //Removes adventure based on an entered ID.
-    @RequestMapping(value = "/traveladventures/{id}", method = RequestMethod.DELETE)
-    public void deleteAdventure(@PathVariable int id) {
-        adventureRepository.deleteById(id);
+    @DeleteMapping("/{id}")
+    public void deleteAdventure(@PathVariable("id") int id) {
+        Optional<Adventure> optionalAdventureToDelete = Optional.ofNullable(adventureRepository.findById(id));
+        if (!optionalAdventureToDelete.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Adventure not found");
+        }
+        adventureRepository.delete(optionalAdventureToDelete.get());
     }
 
 
